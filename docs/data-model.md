@@ -15,6 +15,7 @@ Convenções: PKs são UUID; timestamps usam `timestamptz`; preços usam centavo
 | `professional_hours` | `id`, `tenant_id`, `professional_id`, `weekday`, `start_time`, `end_time`, `is_active` | índice `(tenant_id, professional_id, weekday)` |
 | `appointments` | `id`, `tenant_id`, `customer_id`, `professional_id`, `service_id`, `starts_at`, `ends_at`, preço/duração congelados, `status`, `source`, timestamps | índices `(tenant_id, starts_at)` e `(professional_id, starts_at)`; constraint anti-sobreposição para status ativos |
 | `schedule_blocks` | `id`, `tenant_id`, `professional_id`, `starts_at`, `ends_at`, motivo, timestamps | índice `(professional_id, starts_at)`; também exclui sobreposição com agenda |
+| `schedule_entries` | tabela interna: `id`, `tenant_id`, `professional_id`, `starts_at`, `ends_at`, referência opcional a agendamento ou bloqueio | constraint de exclusão única para qualquer ocupação da agenda |
 | `notifications` | `id`, `tenant_id`, `appointment_id?`, canal, tipo, destino, payload, status, tentativas, erro, timestamps | índice `(tenant_id, status, created_at)` |
 | `whatsapp_connections` | `id`, `tenant_id`, provider, status, identificadores externos e referência segura de segredo | único `(tenant_id, provider)` |
 
@@ -22,5 +23,5 @@ Convenções: PKs são UUID; timestamps usam `timestamptz`; preços usam centavo
 
 - `tenant.status`: `ACTIVE`, `SUSPENDED`.
 - `appointment.status`: `CONFIRMED`, `CANCELLED`, `COMPLETED`, `NO_SHOW`.
-- A constraint de intervalo considera somente `CONFIRMED`; registros cancelados preservam o histórico e liberam o horário.
+- Agendamentos confirmados e bloqueios possuem uma `schedule_entry`; cancelamento ou remoção de bloqueio exclui a entrada na mesma transação e libera o horário.
 - `notification.status`: `PENDING`, `PROCESSING`, `SENT`, `FAILED`.

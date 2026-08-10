@@ -34,7 +34,7 @@
 - Horários do negócio e do profissional definem as janelas elegíveis.
 - Agendamentos ativos e bloqueios excluem intervalos sobrepostos.
 - A confirmação executa em transação PostgreSQL.
-- Uma constraint de exclusão sobre o intervalo de um profissional será criada em migration SQL: dois agendamentos ativos não poderão ocupar o mesmo período, mesmo sob concorrência.
+- Uma constraint de exclusão sobre uma tabela única de alocações de agenda será criada em migration SQL: agendamentos confirmados e bloqueios manuais não poderão ocupar o mesmo intervalo, mesmo sob concorrência.
 - Eventos de notificação são publicados somente após o commit.
 
 ## Segurança
