@@ -1,13 +1,46 @@
+import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
+import { AppointmentModule } from './appointments/appointment.module';
 import { AuthModule } from './auth/auth.module';
+import { AvailabilityModule } from './availability/availability.module';
+import { CustomerModule } from './customers/customer.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthController } from './health.controller';
+import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProfessionalModule } from './professionals/professional.module';
+import { PublicModule } from './public/public.module';
+import { ScheduleBlockModule } from './schedule-blocks/schedule-block.module';
+import { ServiceModule } from './services/service.module';
 import { TenantModule } from './tenants/tenant.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, AuthModule, TenantModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: {
+          url: config.getOrThrow<string>('REDIS_URL'),
+          maxRetriesPerRequest: null,
+        },
+      }),
+    }),
+    PrismaModule,
+    AuthModule,
+    TenantModule,
+    ServiceModule,
+    ProfessionalModule,
+    CustomerModule,
+    AvailabilityModule,
+    AppointmentModule,
+    ScheduleBlockModule,
+    PublicModule,
+    NotificationsModule,
+    DashboardModule,
+  ],
   controllers: [HealthController],
 })
 export class AppModule {}

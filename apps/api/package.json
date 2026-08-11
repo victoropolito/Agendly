@@ -11,15 +11,19 @@
     "prisma:migrate": "pnpm --dir ../.. exec prisma migrate dev --schema prisma/schema.prisma"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.0",
+    "@nestjs/bullmq": "^11.0.5",
     "@nestjs/common": "latest",
     "@nestjs/config": "latest",
     "@nestjs/core": "latest",
     "@nestjs/jwt": "latest",
     "@nestjs/platform-express": "latest",
+    "@prisma/client": "^6.19.0",
     "argon2": "latest",
+    "bullmq": "^6.0.10",
     "class-transformer": "latest",
     "class-validator": "latest",
+    "ioredis": "^6.0.0",
+    "luxon": "^3.7.2",
     "reflect-metadata": "latest",
     "rxjs": "latest"
   },
@@ -29,6 +33,7 @@
     "@nestjs/testing": "latest",
     "@types/express": "latest",
     "@types/jest": "latest",
+    "@types/luxon": "^3.7.4",
     "@types/node": "latest",
     "eslint": "latest",
     "jest": "latest",

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Put, Req, UseGuards } from '@nestjs/common';
 import { TenantRole } from '@prisma/client';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -7,6 +7,7 @@ import { RolesGuard } from './roles.guard';
 import { TenantAccessGuard, type TenantRequest } from './tenant-access.guard';
 import { TenantService } from './tenant.service';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
+import { UpsertBusinessHoursDto } from './dto/upsert-business-hours.dto';
 
 @Controller('tenant/me')
 @UseGuards(JwtAuthGuard, TenantAccessGuard, RolesGuard)
@@ -22,5 +23,15 @@ export class TenantController {
   @Patch()
   updateCurrent(@Req() request: TenantRequest, @Body() dto: UpdateTenantDto) {
     return this.tenantService.updateCurrent(request.tenantContext!, dto);
+  }
+
+  @Get('business-hours')
+  getBusinessHours(@Req() request: TenantRequest) {
+    return this.tenantService.getBusinessHours(request.tenantContext!);
+  }
+
+  @Put('business-hours')
+  updateBusinessHours(@Req() request: TenantRequest, @Body() dto: UpsertBusinessHoursDto) {
+    return this.tenantService.updateBusinessHours(request.tenantContext!, dto);
   }
 }
