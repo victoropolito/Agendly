@@ -1,4 +1,5 @@
 import { Body, Controller, HttpCode, Param, Post } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 
 import { RefreshTokenDto } from '../auth/dto/refresh-token.dto';
 import { CustomerAuthService } from './customer-auth.service';
@@ -9,11 +10,13 @@ import { RegisterCustomerDto } from './dto/register-customer.dto';
 export class CustomerAuthController {
   constructor(private readonly customerAuthService: CustomerAuthService) {}
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('register')
   register(@Param('slug') slug: string, @Body() dto: RegisterCustomerDto) {
     return this.customerAuthService.register(slug, dto);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(200)
   @Post('login')
   login(@Param('slug') slug: string, @Body() dto: LoginCustomerDto) {

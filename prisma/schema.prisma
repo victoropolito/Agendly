@@ -61,11 +61,14 @@ enum NotificationStatus {
 
 enum WhatsAppProvider {
   META_CLOUD_API
+  TWILIO
+  EVOLUTION_API
   DEVELOPMENT
 }
 
 enum ConnectionStatus {
   DISCONNECTED
+  CONNECTING
   CONNECTED
   ERROR
 }
@@ -103,7 +106,7 @@ model Tenant {
 model User {
   id              String         @id @default(uuid()) @db.Uuid
   name            String         @db.VarChar(120)
-  phoneNormalized String         @unique @db.VarChar(20)
+  phoneNormalized String?        @unique @db.VarChar(20)
   email           String?        @unique @db.VarChar(255)
   passwordHash    String         @db.VarChar(255)
   status          UserStatus     @default(ACTIVE)
@@ -176,7 +179,7 @@ model Customer {
   tenantId        String          @db.Uuid
   userId          String?         @db.Uuid
   name            String          @db.VarChar(120)
-  phoneNormalized String          @db.VarChar(20)
+  phoneNormalized String?         @db.VarChar(20)
   email           String?         @db.VarChar(255)
   createdAt       DateTime        @default(now()) @db.Timestamptz(6)
   updatedAt       DateTime        @updatedAt @db.Timestamptz(6)
@@ -185,6 +188,7 @@ model Customer {
   appointments    Appointment[]
 
   @@unique([tenantId, phoneNormalized])
+  @@unique([tenantId, email])
   @@index([tenantId, name])
   @@map("customers")
 }
@@ -261,6 +265,7 @@ model Appointment {
   source                 AppointmentSource @default(PUBLIC)
   notes                  String?           @db.Text
   cancelledAt            DateTime?         @db.Timestamptz(6)
+  reminderSentAt         DateTime?         @db.Timestamptz(6)
   createdAt              DateTime          @default(now()) @db.Timestamptz(6)
   updatedAt              DateTime          @updatedAt @db.Timestamptz(6)
   tenant                 Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict)
@@ -272,6 +277,7 @@ model Appointment {
 
   @@index([tenantId, startsAt])
   @@index([professionalId, startsAt])
+  @@index([status, reminderSentAt, startsAt])
   @@map("appointments")
 }
 

@@ -31,6 +31,13 @@ export class NotificationsProcessor extends WorkerHost {
       return;
     }
 
+    if (!appointment.customer.phoneNormalized) {
+      this.logger.log(
+        `Customer ${appointment.customer.id} has no WhatsApp number on file; skipping ${type} notification.`,
+      );
+      return;
+    }
+
     const notification = await this.prisma.notification.create({
       data: {
         tenantId,

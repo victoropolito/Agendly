@@ -197,7 +197,7 @@ export class AppointmentService {
       updated = await this.prisma.$transaction(async (tx) => {
         const result = await tx.appointment.update({
           where: { id },
-          data: { professionalId, startsAt, endsAt },
+          data: { professionalId, startsAt, endsAt, reminderSentAt: null },
         });
         await tx.scheduleEntry.update({
           where: { appointmentId: id },

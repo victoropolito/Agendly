@@ -1,7 +1,7 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { UserStatus } from '@prisma/client';
+import { UserStatus, type User } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { randomUUID } from 'node:crypto';
 
@@ -26,13 +26,21 @@ export class CustomerAuthService {
   ) {}
 
   async register(slug: string, dto: RegisterCustomerDto): Promise<CustomerAuthTokens> {
-    const tenant = await this.tenantLookup.resolveActiveBySlug(slug);
-    const phoneNormalized = normalizePhone(dto.phone);
+    if (!dto.phone && !dto.email) {
+      throw new BadRequestException('Informe e-mail ou WhatsApp para criar a conta.');
+    }
 
-    let user = await this.prisma.user.findUnique({ where: { phoneNormalized } });
+    const tenant = await this.tenantLookup.resolveActiveBySlug(slug);
+    const phoneNormalized = dto.phone ? normalizePhone(dto.phone) : undefined;
+
+    let user = phoneNormalized ? await this.prisma.user.findUnique({ where: { phoneNormalized } }) : null;
+    if (!user && dto.email) {
+      user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    }
+
     if (user) {
       if (!(await argon2.verify(user.passwordHash, dto.password))) {
-        throw new ConflictException('Este telefone já possui uma conta. Faça login.');
+        throw new ConflictException('Já existe uma conta com esse e-mail ou WhatsApp. Faça login.');
       }
     } else {
       const passwordHash = await argon2.hash(dto.password, { type: argon2.argon2id });
@@ -41,20 +49,36 @@ export class CustomerAuthService {
       });
     }
 
-    await this.prisma.customer.upsert({
-      where: { tenantId_phoneNormalized: { tenantId: tenant.id, phoneNormalized } },
-      create: { tenantId: tenant.id, userId: user.id, name: dto.name, phoneNormalized, email: dto.email },
-      update: { userId: user.id, name: dto.name },
+    const existingCustomer = await this.prisma.customer.findFirst({
+      where: {
+        tenantId: tenant.id,
+        OR: [...(phoneNormalized ? [{ phoneNormalized }] : []), ...(dto.email ? [{ email: dto.email }] : [])],
+      },
     });
+
+    if (existingCustomer) {
+      await this.prisma.customer.update({
+        where: { id: existingCustomer.id },
+        data: {
+          userId: user.id,
+          name: dto.name,
+          phoneNormalized: phoneNormalized ?? existingCustomer.phoneNormalized,
+          email: dto.email ?? existingCustomer.email,
+        },
+      });
+    } else {
+      await this.prisma.customer.create({
+        data: { tenantId: tenant.id, userId: user.id, name: dto.name, phoneNormalized, email: dto.email },
+      });
+    }
 
     return this.issueSession(user.id, tenant.id);
   }
 
   async login(slug: string, dto: LoginCustomerDto): Promise<CustomerAuthTokens> {
     const tenant = await this.tenantLookup.resolveActiveBySlug(slug);
-    const phoneNormalized = normalizePhone(dto.phone);
+    const user = await this.findUserByIdentifier(dto.identifier.trim());
 
-    const user = await this.prisma.user.findUnique({ where: { phoneNormalized } });
     if (!user || user.status !== UserStatus.ACTIVE || !(await argon2.verify(user.passwordHash, dto.password))) {
       throw new UnauthorizedException('Credenciais inválidas.');
     }
@@ -99,6 +123,18 @@ export class CustomerAuthService {
       where: { id: payload.sid, userId: payload.sub, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+  }
+
+  private async findUserByIdentifier(identifier: string): Promise<User | null> {
+    if (identifier.includes('@')) {
+      return this.prisma.user.findUnique({ where: { email: identifier.toLowerCase() } });
+    }
+    try {
+      const phoneNormalized = normalizePhone(identifier);
+      return await this.prisma.user.findUnique({ where: { phoneNormalized } });
+    } catch {
+      return null;
+    }
   }
 
   private async issueSession(userId: string, tenantId: string): Promise<CustomerAuthTokens> {

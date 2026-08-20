@@ -37,7 +37,7 @@ export class AuthService {
           },
         });
         const tenant = await tx.tenant.create({
-          data: { name: dto.tenantName, slug: dto.tenantSlug },
+          data: { name: dto.tenantName, slug: dto.tenantSlug, phone: dto.phone, email: dto.email },
         });
         await tx.tenantMember.create({
           data: { tenantId: tenant.id, userId: user.id, role: TenantRole.ADMIN },
@@ -55,13 +55,13 @@ export class AuthService {
   }
 
   async login(dto: LoginDto): Promise<AuthTokens> {
-    const phoneNormalized = this.normalizePhone(dto.phone);
     const user = await this.prisma.user.findUnique({
-      where: { phoneNormalized },
+      where: { email: dto.email },
       include: {
         tenantMembers: {
-          where: { tenant: { slug: dto.tenantSlug, status: TenantStatus.ACTIVE } },
+          where: { tenant: { status: TenantStatus.ACTIVE } },
           select: { tenantId: true, role: true },
+          orderBy: { createdAt: 'asc' },
         },
       },
     });
@@ -71,14 +71,15 @@ export class AuthService {
     }
 
     if (user.tenantMembers.length === 0) {
-      throw new UnauthorizedException('Usuário sem acesso a esta barbearia.');
+      throw new UnauthorizedException('Usuário sem acesso a nenhuma barbearia.');
     }
 
-    return this.issueSession({
-      userId: user.id,
-      tenantId: user.tenantMembers[0].tenantId,
-      roles: user.tenantMembers.map((member) => member.role),
-    });
+    // A staff account currently belongs to a single barbershop in practice; if it ever belongs
+    // to more than one, the earliest membership is used as the login target for now.
+    const tenantId = user.tenantMembers[0].tenantId;
+    const roles = user.tenantMembers.filter((member) => member.tenantId === tenantId).map((member) => member.role);
+
+    return this.issueSession({ userId: user.id, tenantId, roles });
   }
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
@@ -133,7 +134,8 @@ export class AuthService {
     return {
       id: user.id,
       name: user.name,
-      phone: user.phoneNormalized,
+      // Staff registration always collects a phone, unlike the shared customer-facing User rows.
+      phone: user.phoneNormalized!,
       roles: user.tenantMembers.map((membership) => membership.role),
     };
   }

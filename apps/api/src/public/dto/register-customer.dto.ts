@@ -8,9 +8,10 @@ export class RegisterCustomerDto {
   @Transform(({ value }: { value: string }) => value.trim())
   name!: string;
 
+  @IsOptional()
   @IsString()
   @Matches(/^[0-9+()\-\s]{10,24}$/)
-  phone!: string;
+  phone?: string;
 
   @IsOptional()
   @IsEmail()

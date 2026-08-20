@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Patch, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Patch, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { TenantRole } from '@prisma/client';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ConnectWhatsAppDto } from '../notifications/whatsapp/dto/connect-whatsapp.dto';
+import { WhatsAppConnectionService } from '../notifications/whatsapp/whatsapp-connection.service';
 import { Roles } from './roles.decorator';
 import { RolesGuard } from './roles.guard';
 import { TenantAccessGuard, type TenantRequest } from './tenant-access.guard';
@@ -13,7 +15,10 @@ import { UpsertBusinessHoursDto } from './dto/upsert-business-hours.dto';
 @UseGuards(JwtAuthGuard, TenantAccessGuard, RolesGuard)
 @Roles(TenantRole.ADMIN)
 export class TenantController {
-  constructor(private readonly tenantService: TenantService) {}
+  constructor(
+    private readonly tenantService: TenantService,
+    private readonly whatsAppConnectionService: WhatsAppConnectionService,
+  ) {}
 
   @Get()
   getCurrent(@Req() request: TenantRequest) {
@@ -33,5 +38,26 @@ export class TenantController {
   @Put('business-hours')
   updateBusinessHours(@Req() request: TenantRequest, @Body() dto: UpsertBusinessHoursDto) {
     return this.tenantService.updateBusinessHours(request.tenantContext!, dto);
+  }
+
+  @Get('whatsapp-connection')
+  getWhatsAppConnection(@Req() request: TenantRequest) {
+    return this.whatsAppConnectionService.getStatus(request.tenantContext!);
+  }
+
+  @Put('whatsapp-connection')
+  connectWhatsApp(@Req() request: TenantRequest, @Body() dto: ConnectWhatsAppDto) {
+    return this.whatsAppConnectionService.connect(request.tenantContext!, dto);
+  }
+
+  @Post('whatsapp-connection/evolution')
+  startEvolutionWhatsApp(@Req() request: TenantRequest) {
+    return this.whatsAppConnectionService.startEvolutionConnection(request.tenantContext!);
+  }
+
+  @HttpCode(204)
+  @Delete('whatsapp-connection')
+  async disconnectWhatsApp(@Req() request: TenantRequest): Promise<void> {
+    await this.whatsAppConnectionService.disconnect(request.tenantContext!);
   }
 }
