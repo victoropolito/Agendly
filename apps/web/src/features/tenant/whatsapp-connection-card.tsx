@@ -11,6 +11,15 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getAuthErrorMessage } from '@/features/auth/staff-auth-context';
 import { useDisconnectWhatsApp, useStartEvolutionConnection, useWhatsAppConnection } from '@/features/tenant/use-tenant';
+import { staffApi } from '@/lib/staff-api';
+import type { EvolutionConnectionStart } from '@/lib/types';
+
+/** Baileys (the underlying WhatsApp Web protocol lib) rotates the QR roughly every 20s while
+ * connecting, so we re-fetch a little ahead of that to make sure what's on screen is never stale. */
+const QR_AUTO_REFRESH_MS = 18_000;
+/** WhatsApp doesn't document an exact pairing-code TTL — this is a conservative estimate used only
+ * to warn the admin before they waste time typing a code that's likely already dead. */
+const PAIRING_CODE_TTL_SECONDS = 60;
 
 function QrCodeTab({ isConnecting }: { isConnecting: boolean }) {
   const startConnection = useStartEvolutionConnection();
@@ -30,6 +39,21 @@ function QrCodeTab({ isConnecting }: { isConnecting: boolean }) {
     }
   }
 
+  React.useEffect(() => {
+    if (!qrCode || !isConnecting) return;
+    const interval = setInterval(() => {
+      staffApi
+        .post<EvolutionConnectionStart>('/tenant/me/whatsapp-connection/evolution', { phone: undefined })
+        .then((result) => {
+          if (result.qrCodeBase64) setQrCode(result.qrCodeBase64);
+        })
+        .catch(() => {
+          // Silent — worst case the image goes stale and the admin clicks "Gerar novo QR Code".
+        });
+    }, QR_AUTO_REFRESH_MS);
+    return () => clearInterval(interval);
+  }, [qrCode, isConnecting]);
+
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
@@ -43,7 +67,7 @@ function QrCodeTab({ isConnecting }: { isConnecting: boolean }) {
             Abra o WhatsApp no celular → Configurações → Aparelhos conectados → Conectar um aparelho, e escaneie o
             código acima.
           </p>
-          <p className="text-xs text-muted-foreground">Aguardando leitura do QR Code…</p>
+          <p className="text-xs text-muted-foreground">O código se atualiza sozinho antes de expirar — pode levar seu tempo.</p>
         </div>
       )}
       <Button type="button" onClick={() => void handleGenerateQr()} disabled={startConnection.isPending} className="w-fit">
@@ -57,6 +81,7 @@ function PairingCodeTab({ isConnecting }: { isConnecting: boolean }) {
   const startConnection = useStartEvolutionConnection();
   const [phone, setPhone] = React.useState('');
   const [pairingCode, setPairingCode] = React.useState<string | null>(null);
+  const [secondsLeft, setSecondsLeft] = React.useState(0);
 
   async function handleGenerateCode() {
     if (!phone.trim()) {
@@ -68,6 +93,7 @@ function PairingCodeTab({ isConnecting }: { isConnecting: boolean }) {
       const result = await startConnection.mutateAsync(phone);
       if (result.pairingCode) {
         setPairingCode(result.pairingCode);
+        setSecondsLeft(PAIRING_CODE_TTL_SECONDS);
       } else if (!result.qrCodeBase64) {
         toast.success('WhatsApp já está conectado.');
       } else {
@@ -78,10 +104,19 @@ function PairingCodeTab({ isConnecting }: { isConnecting: boolean }) {
     }
   }
 
+  React.useEffect(() => {
+    if (!pairingCode || !isConnecting) return;
+    const interval = setInterval(() => setSecondsLeft((value) => Math.max(0, value - 1)), 1000);
+    return () => clearInterval(interval);
+  }, [pairingCode, isConnecting]);
+
+  const isExpired = pairingCode !== null && secondsLeft <= 0;
+
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        Sem câmera? Informe o número e digite o código diretamente no WhatsApp — sem escanear nada.
+        Sem câmera? Informe o número e digite o código diretamente no WhatsApp — sem escanear nada. Faça isso com o
+        celular já em mãos: o código expira rápido.
       </p>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="pairing-phone">Número de WhatsApp</Label>
@@ -94,12 +129,18 @@ function PairingCodeTab({ isConnecting }: { isConnecting: boolean }) {
       </div>
       {pairingCode && isConnecting && (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border p-4">
-          <p className="text-2xl font-semibold tracking-widest">{pairingCode}</p>
+          <p className={`text-2xl font-semibold tracking-widest ${isExpired ? 'text-muted-foreground line-through' : ''}`}>
+            {pairingCode}
+          </p>
           <p className="text-center text-sm text-muted-foreground">
             No celular: WhatsApp → Configurações → Aparelhos conectados → Conectar um aparelho → &quot;Conectar com
             número de telefone&quot; → digite o código acima.
           </p>
-          <p className="text-xs text-muted-foreground">Aguardando confirmação…</p>
+          {isExpired ? (
+            <p className="text-xs font-medium text-destructive">Código provavelmente expirado. Gere um novo abaixo.</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">Expira em ~{secondsLeft}s — digite rápido no celular.</p>
+          )}
         </div>
       )}
       <Button type="button" onClick={() => void handleGenerateCode()} disabled={startConnection.isPending} className="w-fit">
