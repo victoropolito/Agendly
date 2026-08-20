@@ -1,10 +1,17 @@
-# All plans are set to Render's free tier so this Blueprint deploys without a card on file.
-# Two real limits to know about before treating this as a live production deploy:
-#   - agendly-postgres (free): expires 30 days after creation, then a 14-day grace period,
-#     then Render deletes the database and all its data unless you upgrade the plan first.
-#   - Free web services spin down after ~15 min of inactivity (slow first request after idle)
-#     and are capped at 750 instance-hours/month across the workspace's free services.
-# When ready for real usage, bump `plan:` on each resource below to a paid tier.
+# Postgres and Redis are NOT hosted on Render — Render's own free Postgres self-deletes after
+# ~44 days of inactivity-free existence, which is a bad fit for a real (if low-traffic) app.
+# Instead:
+#   - Postgres: create TWO free projects at neon.tech (100 projects allowed for free, 0.5GB
+#     storage each, no time-based deletion — auto-suspends when idle and wakes on the next
+#     request). One project's database is for agendly-api's Prisma schema, the other is a
+#     separate, empty database for the Evolution API server to manage on its own — mirrors
+#     the two-separate-databases setup already verified working in docker-compose.yml, rather
+#     than sharing one database via Postgres schemas (untested and unnecessary here).
+#   - Redis: create TWO free databases at upstash.com (free tier allows up to 10 per account,
+#     no card required) — one for agendly-api's BullMQ queue, one for the Evolution API's cache.
+# Render itself only hosts the two web services below, both on the free plan: they spin down
+# after ~15 min of inactivity (slow first request after idle) and share a 750 instance-hour/
+# month cap across the workspace's free services — fine for small, infrequent traffic.
 services:
   - name: agendly-api
     type: web
@@ -17,15 +24,13 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "24"
+      # Paste the connection string Neon gives you for your project (includes ?sslmode=require —
+      # keep it exactly as Neon provides it, Prisma needs SSL against Neon).
       - key: DATABASE_URL
-        fromDatabase:
-          name: agendly-postgres
-          property: connectionString
+        sync: false
+      # Paste the connection string of the FIRST Upstash Redis database (used for the BullMQ queue).
       - key: REDIS_URL
-        fromService:
-          name: agendly-redis
-          type: keyvalue
-          property: connectionString
+        sync: false
       # Set this once the Vercel project exists (e.g. https://agendly.vercel.app).
       # Comma-separated if you add a custom domain later.
       - key: WEB_ORIGIN
@@ -58,19 +63,16 @@ services:
         generateValue: true
       - key: DATABASE_PROVIDER
         value: postgresql
-      # Copy agendly-postgres's "Internal Connection String" from the Render dashboard and
-      # append `?schema=evolution_api` — this reuses the same free database in its own
-      # Postgres schema instead of provisioning a second one. Example:
-      # postgresql://user:pass@host/agendly?schema=evolution_api
+      # Connection string of the SECOND Neon project's database (a separate, empty database
+      # from agendly-api's — Evolution API creates and manages its own tables in it on boot).
       - key: DATABASE_CONNECTION_URI
         sync: false
       - key: DATABASE_SAVE_DATA_INSTANCE
         value: "true"
       - key: CACHE_REDIS_ENABLED
         value: "true"
-      # Copy agendly-redis's connection string and append `/6` (a distinct logical DB index,
-      # same convention used in docker-compose.yml for local dev) so it doesn't collide with
-      # the BullMQ queue agendly-api uses on the same Redis instance.
+      # Paste the connection string of the SECOND Upstash Redis database (a separate free
+      # database from agendly-api's, so nothing needs to share key namespaces).
       - key: CACHE_REDIS_URI
         sync: false
       - key: CACHE_LOCAL_ENABLED
@@ -78,17 +80,3 @@ services:
       # This service's own public Render URL, filled in after first deploy.
       - key: SERVER_URL
         sync: false
-
-  - name: agendly-redis
-    type: keyvalue
-    plan: free
-    region: oregon
-    ipAllowList: []
-    maxmemoryPolicy: noeviction
-
-databases:
-  - name: agendly-postgres
-    plan: free
-    region: oregon
-    databaseName: agendly
-    user: agendly
