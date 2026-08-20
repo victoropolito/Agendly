@@ -7,8 +7,12 @@
 #     separate, empty database for the Evolution API server to manage on its own — mirrors
 #     the two-separate-databases setup already verified working in docker-compose.yml, rather
 #     than sharing one database via Postgres schemas (untested and unnecessary here).
-#   - Redis: create TWO free databases at upstash.com (free tier allows up to 10 per account,
-#     no card required) — one for agendly-api's BullMQ queue, one for the Evolution API's cache.
+#   - Redis: Upstash currently only allows ONE free database per account, so both services
+#     share it — isolated by key prefix instead of by database, which works regardless of
+#     whether the provider supports multiple logical Redis databases. agendly-api's BullMQ
+#     queue is configured with prefix "agendly" (see app.module.ts); the Evolution API server
+#     gets its own prefix via CACHE_REDIS_PREFIX_KEY below. Use the *same* connection string
+#     for both REDIS_URL and CACHE_REDIS_URI.
 # Render itself only hosts the two web services below, both on the free plan: they spin down
 # after ~15 min of inactivity (slow first request after idle) and share a 750 instance-hour/
 # month cap across the workspace's free services — fine for small, infrequent traffic.
@@ -28,7 +32,8 @@ services:
       # keep it exactly as Neon provides it, Prisma needs SSL against Neon).
       - key: DATABASE_URL
         sync: false
-      # Paste the connection string of the FIRST Upstash Redis database (used for the BullMQ queue).
+      # Paste your Upstash Redis connection string (the same one used for CACHE_REDIS_URI below —
+      # see the top-of-file note on why they're shared).
       - key: REDIS_URL
         sync: false
       # Set this once the Vercel project exists (e.g. https://agendly.vercel.app).
@@ -71,10 +76,12 @@ services:
         value: "true"
       - key: CACHE_REDIS_ENABLED
         value: "true"
-      # Paste the connection string of the SECOND Upstash Redis database (a separate free
-      # database from agendly-api's, so nothing needs to share key namespaces).
+      # Same Upstash connection string as agendly-api's REDIS_URL — shared instance, isolated
+      # by key prefix (see CACHE_REDIS_PREFIX_KEY below and the top-of-file note).
       - key: CACHE_REDIS_URI
         sync: false
+      - key: CACHE_REDIS_PREFIX_KEY
+        value: evolution
       - key: CACHE_LOCAL_ENABLED
         value: "false"
       # This service's own public Render URL, filled in after first deploy.

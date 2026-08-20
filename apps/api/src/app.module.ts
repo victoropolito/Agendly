@@ -31,6 +31,9 @@ import { TenantModule } from './tenants/tenant.module';
           url: config.getOrThrow<string>('REDIS_URL'),
           maxRetriesPerRequest: null,
         },
+        // Namespaces every queue's keys so this app can safely share one Redis instance with
+        // other services (e.g. the Evolution API server, which prefixes its own keys too).
+        prefix: 'agendly',
       }),
     }),
     PrismaModule,
