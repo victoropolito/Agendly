@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start:dev": "nest start --watch",
+    "start:prod": "node dist/main.js",
     "build": "nest build",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest --config jest.config.cjs",
