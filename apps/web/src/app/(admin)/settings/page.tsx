@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { getAuthErrorMessage } from '@/features/auth/staff-auth-context';
 import { BusinessHoursEditor } from '@/features/tenant/business-hours-editor';
+import { PublicLinkCard } from '@/features/tenant/public-link-card';
 import { tenantSettingsSchema, type TenantSettingsValues } from '@/features/tenant/schemas';
 import { useTenant, useUpdateTenant } from '@/features/tenant/use-tenant';
 import { WhatsAppConnectionCard } from '@/features/tenant/whatsapp-connection-card';
@@ -53,6 +54,8 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Configurações</h1>
         <p className="text-sm text-muted-foreground">Dados públicos e horário de funcionamento da barbearia.</p>
       </div>
+
+      {tenant && <PublicLinkCard slug={tenant.slug} />}
 
       <Card>
         <CardHeader>
