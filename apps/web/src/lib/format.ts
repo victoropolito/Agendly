@@ -21,12 +21,17 @@ export function formatPhoneDisplay(phone: string | null | undefined): string {
   return phone;
 }
 
-export function formatDateLong(isoDate: string, timezone?: string): string {
-  return new Date(isoDate).toLocaleDateString('pt-BR', {
+/**
+ * `isoDate` is a pure calendar date ("YYYY-MM-DD") with no time-of-day, so it's parsed as local
+ * year/month/day components — not via `new Date(isoDate)`, which the JS spec anchors to UTC
+ * midnight and would shift the displayed weekday/day back by one for any UTC-negative viewer.
+ */
+export function formatDateLong(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('pt-BR', {
     weekday: 'long',
     day: '2-digit',
     month: 'long',
-    ...(timezone ? { timeZone: timezone } : {}),
   });
 }
 
