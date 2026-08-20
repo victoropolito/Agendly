@@ -7,8 +7,6 @@ import { NotificationsProcessor } from './notifications.processor';
 import { NotificationsQueueService } from './notifications-queue.service';
 import { DevelopmentWhatsAppProvider } from './whatsapp/development-whatsapp.provider';
 import { EvolutionApiProvider } from './whatsapp/evolution-api.provider';
-import { MetaCloudApiProvider } from './whatsapp/meta-cloud-api.provider';
-import { TwilioWhatsAppProvider } from './whatsapp/twilio-whatsapp.provider';
 import { WhatsAppConnectionService } from './whatsapp/whatsapp-connection.service';
 import { WhatsAppDispatcherService } from './whatsapp/whatsapp-dispatcher.service';
 
@@ -21,8 +19,6 @@ import { WhatsAppDispatcherService } from './whatsapp/whatsapp-dispatcher.servic
     WhatsAppDispatcherService,
     WhatsAppConnectionService,
     DevelopmentWhatsAppProvider,
-    MetaCloudApiProvider,
-    TwilioWhatsAppProvider,
     EvolutionApiProvider,
   ],
   exports: [NotificationsQueueService, WhatsAppConnectionService, AppointmentReminderScheduler],

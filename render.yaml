@@ -1,8 +1,15 @@
+# All plans are set to Render's free tier so this Blueprint deploys without a card on file.
+# Two real limits to know about before treating this as a live production deploy:
+#   - agendly-postgres (free): expires 30 days after creation, then a 14-day grace period,
+#     then Render deletes the database and all its data unless you upgrade the plan first.
+#   - Free web services spin down after ~15 min of inactivity (slow first request after idle)
+#     and are capped at 750 instance-hours/month across the workspace's free services.
+# When ready for real usage, bump `plan:` on each resource below to a paid tier.
 services:
   - name: agendly-api
     type: web
     runtime: node
-    plan: starter
+    plan: free
     region: oregon
     buildCommand: corepack enable && corepack prepare pnpm@11.16.0 --activate && pnpm install --frozen-lockfile && pnpm --filter @agendly/api prisma:generate && pnpm exec prisma migrate deploy --schema prisma/schema.prisma && pnpm --filter @agendly/api build
     startCommand: node apps/api/dist/main.js
@@ -31,10 +38,6 @@ services:
         generateValue: true
       - key: JWT_CUSTOMER_REFRESH_SECRET
         generateValue: true
-      - key: WHATSAPP_TOKEN_ENCRYPTION_KEY
-        generateValue: true
-      - key: WHATSAPP_GRAPH_API_VERSION
-        value: v21.0
       # Must match the agendly-evolution-api service's AUTHENTICATION_API_KEY exactly —
       # copy that generated value here after both services exist.
       - key: EVOLUTION_API_KEY
@@ -46,7 +49,7 @@ services:
   - name: agendly-evolution-api
     type: web
     runtime: image
-    plan: starter
+    plan: free
     region: oregon
     image:
       url: docker.io/evoapicloud/evolution-api:latest
@@ -56,8 +59,8 @@ services:
       - key: DATABASE_PROVIDER
         value: postgresql
       # Copy agendly-postgres's "Internal Connection String" from the Render dashboard and
-      # append `?schema=evolution_api` — this reuses the same database in its own Postgres
-      # schema instead of provisioning a second paid database. Example:
+      # append `?schema=evolution_api` — this reuses the same free database in its own
+      # Postgres schema instead of provisioning a second one. Example:
       # postgresql://user:pass@host/agendly?schema=evolution_api
       - key: DATABASE_CONNECTION_URI
         sync: false
@@ -78,14 +81,14 @@ services:
 
   - name: agendly-redis
     type: keyvalue
-    plan: starter
+    plan: free
     region: oregon
     ipAllowList: []
     maxmemoryPolicy: noeviction
 
 databases:
   - name: agendly-postgres
-    plan: basic-1gb
+    plan: free
     region: oregon
     databaseName: agendly
     user: agendly

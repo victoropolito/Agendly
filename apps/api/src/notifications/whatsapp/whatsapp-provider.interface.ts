@@ -13,17 +13,6 @@ export interface WhatsAppProvider {
   send(message: WhatsAppMessage): Promise<WhatsAppSendResult>;
 }
 
-export interface MetaSendContext {
-  phoneNumberId: string;
-  accessToken: string;
-}
-
-export interface TwilioSendContext {
-  accountSid: string;
-  authToken: string;
-  fromNumber: string;
-}
-
 export interface EvolutionSendContext {
   instanceName: string;
 }

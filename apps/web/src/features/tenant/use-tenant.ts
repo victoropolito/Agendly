@@ -52,10 +52,6 @@ export function useUpdateBusinessHours() {
   });
 }
 
-export type ConnectWhatsAppInput =
-  | { provider: 'META_CLOUD_API'; phoneNumberId: string; businessAccountId: string; accessToken: string }
-  | { provider: 'TWILIO'; accountSid: string; authToken: string; fromNumber: string };
-
 export function useWhatsAppConnection(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['tenant', 'whatsapp-connection'],
@@ -63,14 +59,6 @@ export function useWhatsAppConnection(options?: { enabled?: boolean }) {
     enabled: options?.enabled ?? true,
     // While waiting for the admin to scan the Evolution API QR code, poll until it flips to CONNECTED.
     refetchInterval: (query) => (query.state.data?.status === 'CONNECTING' ? 3000 : false),
-  });
-}
-
-export function useConnectWhatsApp() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: ConnectWhatsAppInput) => staffApi.put<WhatsAppConnection>('/tenant/me/whatsapp-connection', data),
-    onSuccess: (connection) => queryClient.setQueryData(['tenant', 'whatsapp-connection'], connection),
   });
 }
 

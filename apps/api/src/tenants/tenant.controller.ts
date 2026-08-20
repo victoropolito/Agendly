@@ -2,7 +2,6 @@ import { Body, Controller, Delete, Get, HttpCode, Patch, Post, Put, Req, UseGuar
 import { TenantRole } from '@prisma/client';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ConnectWhatsAppDto } from '../notifications/whatsapp/dto/connect-whatsapp.dto';
 import { WhatsAppConnectionService } from '../notifications/whatsapp/whatsapp-connection.service';
 import { Roles } from './roles.decorator';
 import { RolesGuard } from './roles.guard';
@@ -43,11 +42,6 @@ export class TenantController {
   @Get('whatsapp-connection')
   getWhatsAppConnection(@Req() request: TenantRequest) {
     return this.whatsAppConnectionService.getStatus(request.tenantContext!);
-  }
-
-  @Put('whatsapp-connection')
-  connectWhatsApp(@Req() request: TenantRequest, @Body() dto: ConnectWhatsAppDto) {
-    return this.whatsAppConnectionService.connect(request.tenantContext!, dto);
   }
 
   @Post('whatsapp-connection/evolution')

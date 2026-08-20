@@ -170,7 +170,7 @@ export interface PublicProfessional {
 }
 
 export type WhatsAppConnectionStatus = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'ERROR';
-export type WhatsAppConnectionProvider = 'META_CLOUD_API' | 'TWILIO' | 'EVOLUTION_API';
+export type WhatsAppConnectionProvider = 'EVOLUTION_API';
 
 export interface WhatsAppConnection {
   provider: WhatsAppConnectionProvider | null;
@@ -178,9 +178,6 @@ export interface WhatsAppConnection {
   phoneNumberId: string | null;
   businessAccountId: string | null;
   updatedAt: string | null;
-  displayPhoneNumber?: string;
-  verifiedName?: string;
-  accountName?: string;
 }
 
 export interface EvolutionConnectionStart extends WhatsAppConnection {
