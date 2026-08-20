@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { getAuthErrorMessage, useStaffAuth } from '@/features/auth/staff-auth-context';
 import { registerTenantSchema, type RegisterTenantValues } from '@/features/auth/schemas';
 
@@ -74,6 +75,7 @@ export default function RegisterPage() {
                   <FormControl>
                     <Input
                       placeholder="Barbearia Central"
+                      maxLength={120}
                       {...field}
                       onChange={(event) => {
                         field.onChange(event);
@@ -93,7 +95,7 @@ export default function RegisterPage() {
                 <FormItem>
                   <FormLabel>Seu nome</FormLabel>
                   <FormControl>
-                    <Input placeholder="Seu nome completo" {...field} />
+                    <Input placeholder="Seu nome completo" maxLength={120} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -106,7 +108,7 @@ export default function RegisterPage() {
                 <FormItem>
                   <FormLabel>Telefone</FormLabel>
                   <FormControl>
-                    <Input placeholder="(11) 99999-0000" autoComplete="tel" {...field} />
+                    <PhoneInput placeholder="(11) 99999-0000" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -119,7 +121,7 @@ export default function RegisterPage() {
                 <FormItem>
                   <FormLabel>E-mail</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="voce@exemplo.com" autoComplete="email" {...field} />
+                    <Input type="email" placeholder="voce@exemplo.com" autoComplete="email" maxLength={70} {...field} />
                   </FormControl>
                   <FormDescription>Usado para entrar na sua conta.</FormDescription>
                   <FormMessage />

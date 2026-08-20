@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { getCustomerAuthErrorMessage, useCustomerAuth } from '@/features/customer-auth/customer-auth-context';
 import { customerRegisterSchema, type CustomerRegisterValues } from '@/features/customer-auth/schemas';
 
@@ -51,7 +52,7 @@ export default function CustomerRegisterPage() {
                 <FormItem>
                   <FormLabel>Nome</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input maxLength={120} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -65,7 +66,7 @@ export default function CustomerRegisterPage() {
                 <FormItem>
                   <FormLabel>WhatsApp</FormLabel>
                   <FormControl>
-                    <Input placeholder="(11) 99999-0000" {...field} />
+                    <PhoneInput placeholder="(11) 99999-0000" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -78,7 +79,7 @@ export default function CustomerRegisterPage() {
                 <FormItem>
                   <FormLabel>E-mail</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="voce@exemplo.com" {...field} />
+                    <Input type="email" placeholder="voce@exemplo.com" maxLength={70} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

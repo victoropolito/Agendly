@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Textarea } from '@/components/ui/textarea';
 import { getAuthErrorMessage } from '@/features/auth/staff-auth-context';
 import { BusinessHoursEditor } from '@/features/tenant/business-hours-editor';
@@ -74,7 +75,7 @@ export default function SettingsPage() {
                     <FormItem>
                       <FormLabel>Nome</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input maxLength={120} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -88,7 +89,7 @@ export default function SettingsPage() {
                       <FormItem>
                         <FormLabel>WhatsApp / Telefone</FormLabel>
                         <FormControl>
-                          <Input placeholder="(11) 99999-0000" {...field} />
+                          <PhoneInput placeholder="(11) 99999-0000" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -101,7 +102,7 @@ export default function SettingsPage() {
                       <FormItem>
                         <FormLabel>E-mail</FormLabel>
                         <FormControl>
-                          <Input type="email" disabled {...field} />
+                          <Input type="email" disabled maxLength={70} {...field} />
                         </FormControl>
                         <FormDescription>Usado para entrar na conta — não pode ser alterado por aqui ainda.</FormDescription>
                         <FormMessage />

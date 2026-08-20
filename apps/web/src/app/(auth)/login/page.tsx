@@ -54,7 +54,7 @@ export default function LoginPage() {
                 <FormItem>
                   <FormLabel>E-mail</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="voce@exemplo.com" autoComplete="email" {...field} />
+                    <Input type="email" placeholder="voce@exemplo.com" autoComplete="email" maxLength={70} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

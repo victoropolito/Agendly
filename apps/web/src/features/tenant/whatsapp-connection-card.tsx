@@ -6,8 +6,8 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getAuthErrorMessage } from '@/features/auth/staff-auth-context';
 import { useDisconnectWhatsApp, useStartEvolutionConnection, useWhatsAppConnection } from '@/features/tenant/use-tenant';
@@ -85,7 +85,7 @@ function PairingCodeTab({ isConnecting }: { isConnecting: boolean }) {
       </p>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="pairing-phone">Número de WhatsApp</Label>
-        <Input
+        <PhoneInput
           id="pairing-phone"
           placeholder="(11) 99999-0000"
           value={phone}

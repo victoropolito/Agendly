@@ -35,6 +35,16 @@ interface EvolutionErrorBody {
   response?: { message?: unknown };
 }
 
+const TRANSIENT_STATUS_CODES = new Set([502, 503, 504]);
+const COLD_START_RETRIES = 3;
+const COLD_START_RETRY_DELAY_MS = 5000;
+const DISCONNECT_POLL_ATTEMPTS = 5;
+const DISCONNECT_POLL_DELAY_MS = 400;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * Integration with a self-hosted Evolution API server (https://github.com/evolution-foundation/evolution-api),
  * a Baileys-based (WhatsApp Web protocol) gateway. Unlike Meta Cloud API / Twilio, there's no external account
@@ -54,6 +64,33 @@ export class EvolutionApiProvider {
 
   private get headers(): Record<string, string> {
     return { apikey: this.config.getOrThrow<string>('EVOLUTION_API_KEY'), 'Content-Type': 'application/json' };
+  }
+
+  /**
+   * Our self-hosted Evolution API runs on a free-tier host that spins down when idle: the first
+   * request after a while returns a 502/503/504 (or fails outright) while it wakes back up, which
+   * can take up to ~1 minute. Retrying with a delay avoids surfacing that as a hard failure to the
+   * admin every time they're the one who happens to wake it up.
+   */
+  private async fetchWithRetry(path: string, init: RequestInit): Promise<Response> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= COLD_START_RETRIES; attempt++) {
+      try {
+        const response = await fetch(`${this.baseUrl}${path}`, init);
+        if (TRANSIENT_STATUS_CODES.has(response.status) && attempt < COLD_START_RETRIES) {
+          await sleep(COLD_START_RETRY_DELAY_MS);
+          continue;
+        }
+        return response;
+      } catch (error) {
+        lastError = error;
+        if (attempt < COLD_START_RETRIES) {
+          await sleep(COLD_START_RETRY_DELAY_MS);
+          continue;
+        }
+      }
+    }
+    throw lastError;
   }
 
   /**
@@ -79,7 +116,7 @@ export class EvolutionApiProvider {
 
   async getConnectionState(instanceName: string): Promise<EvolutionConnectionState> {
     try {
-      const response = await fetch(`${this.baseUrl}/instance/connectionState/${instanceName}`, { headers: this.headers });
+      const response = await this.fetchWithRetry(`/instance/connectionState/${instanceName}`, { headers: this.headers });
       if (response.status === 404) return 'not_found';
       if (!response.ok) return 'not_found';
       const payload = (await response.json().catch(() => null)) as EvolutionConnectionStateBody | null;
@@ -117,6 +154,13 @@ export class EvolutionApiProvider {
     }
   }
 
+  /**
+   * Logs out and deletes the instance, then waits (briefly, best-effort) for the teardown to
+   * actually land before returning. Evolution API's delete can return before the underlying
+   * Baileys session is fully torn down; a caller that immediately recreates the instance (see
+   * `ensureInstanceWithQrCode`) can otherwise race it and get a stale/reused session back — which
+   * silently ignores the pairing-code request and falls back to a QR code instead.
+   */
   async disconnect(instanceName: string): Promise<void> {
     try {
       await fetch(`${this.baseUrl}/instance/logout/${instanceName}`, { method: 'DELETE', headers: this.headers });
@@ -128,11 +172,15 @@ export class EvolutionApiProvider {
     } catch (error) {
       this.logger.warn(`Falha ao remover a instância ${instanceName}: ${this.reasonOf(error)}`);
     }
+    for (let attempt = 0; attempt < DISCONNECT_POLL_ATTEMPTS; attempt++) {
+      if ((await this.getConnectionState(instanceName)) === 'not_found') return;
+      await sleep(DISCONNECT_POLL_DELAY_MS);
+    }
   }
 
   private async createInstance(instanceName: string, phoneNumber?: string): Promise<EvolutionQrResult> {
     try {
-      const response = await fetch(`${this.baseUrl}/instance/create`, {
+      const response = await this.fetchWithRetry('/instance/create', {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify({
@@ -144,7 +192,7 @@ export class EvolutionApiProvider {
       });
       const payload = (await response.json().catch(() => null)) as (EvolutionCreateInstanceBody & EvolutionErrorBody) | null;
       if (!response.ok) {
-        return { ok: false, error: this.errorMessageOf(payload) ?? `Evolution API respondeu ${response.status}` };
+        return { ok: false, error: this.errorMessageOf(payload) ?? this.statusFallbackMessage(response.status) };
       }
       return { ok: true, qrCodeBase64: payload?.qrcode?.base64, pairingCode: payload?.qrcode?.pairingCode };
     } catch (error) {
@@ -154,10 +202,10 @@ export class EvolutionApiProvider {
 
   private async refreshQrCode(instanceName: string): Promise<EvolutionQrResult> {
     try {
-      const response = await fetch(`${this.baseUrl}/instance/connect/${instanceName}`, { headers: this.headers });
+      const response = await this.fetchWithRetry(`/instance/connect/${instanceName}`, { headers: this.headers });
       const payload = (await response.json().catch(() => null)) as (EvolutionQrBody & EvolutionErrorBody) | null;
       if (!response.ok) {
-        return { ok: false, error: this.errorMessageOf(payload) ?? `Evolution API respondeu ${response.status}` };
+        return { ok: false, error: this.errorMessageOf(payload) ?? this.statusFallbackMessage(response.status) };
       }
       return { ok: true, qrCodeBase64: payload?.base64, pairingCode: payload?.pairingCode };
     } catch (error) {
@@ -173,6 +221,13 @@ export class EvolutionApiProvider {
     }
     if (typeof message === 'string') return message;
     return payload.error;
+  }
+
+  private statusFallbackMessage(status: number): string {
+    if (TRANSIENT_STATUS_CODES.has(status)) {
+      return 'O servidor de WhatsApp está iniciando. Aguarde um instante e tente novamente.';
+    }
+    return `Evolution API respondeu ${status}`;
   }
 
   private reasonOf(error: unknown): string {

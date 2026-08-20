@@ -6,7 +6,7 @@ const phoneField = z
   .max(24, 'Telefone muito longo.')
   .regex(/^[0-9+()\-\s]+$/, 'Use apenas números, espaços e os símbolos + ( ) -.');
 
-const emailField = z.string().min(1, 'Informe o e-mail.').email('E-mail inválido.');
+const emailField = z.string().min(1, 'Informe o e-mail.').max(70, 'E-mail muito longo.').email('E-mail inválido.');
 
 const slugField = z
   .string()

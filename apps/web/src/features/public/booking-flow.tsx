@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getCustomerAuthErrorMessage, useCustomerAuth } from '@/features/customer-auth/customer-auth-context';
 import {
@@ -252,7 +253,7 @@ export function BookingFlow() {
                       <FormItem>
                         <FormLabel>Nome</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input maxLength={120} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -266,7 +267,7 @@ export function BookingFlow() {
                       <FormItem>
                         <FormLabel>WhatsApp</FormLabel>
                         <FormControl>
-                          <Input placeholder="(99) 99999-9999" {...field} />
+                          <PhoneInput placeholder="(99) 99999-9999" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -279,7 +280,7 @@ export function BookingFlow() {
                       <FormItem>
                         <FormLabel>E-mail</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="voce@exemplo.com" {...field} />
+                          <Input type="email" placeholder="voce@exemplo.com" maxLength={70} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -314,7 +315,7 @@ export function BookingFlow() {
                       <FormItem>
                         <FormLabel>E-mail ou WhatsApp</FormLabel>
                         <FormControl>
-                          <Input placeholder="voce@exemplo.com ou (11) 99999-0000" {...field} />
+                          <Input placeholder="voce@exemplo.com ou (11) 99999-0000" maxLength={255} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

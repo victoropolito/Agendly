@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Switch } from '@/components/ui/switch';
 import { getAuthErrorMessage } from '@/features/auth/staff-auth-context';
 import { professionalFormSchema, type ProfessionalFormValues } from '@/features/professionals/schemas';
@@ -86,7 +87,7 @@ export function ProfessionalFormDialog({ professional, trigger }: ProfessionalFo
                 <FormItem>
                   <FormLabel>Nome</FormLabel>
                   <FormControl>
-                    <Input placeholder="João Silva" {...field} />
+                    <Input placeholder="João Silva" maxLength={120} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -99,7 +100,7 @@ export function ProfessionalFormDialog({ professional, trigger }: ProfessionalFo
                 <FormItem>
                   <FormLabel>Telefone (opcional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="(11) 99999-0000" {...field} />
+                    <PhoneInput placeholder="(11) 99999-0000" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

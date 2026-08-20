@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
 const optionalPhone = z.union([z.literal(''), z.string().min(10, 'Informe um WhatsApp válido.').max(24)]).optional();
-const optionalEmail = z.union([z.literal(''), z.string().email('E-mail inválido.')]).optional();
+const optionalEmail = z
+  .union([z.literal(''), z.string().max(70, 'E-mail muito longo.').email('E-mail inválido.')])
+  .optional();
 
 export const customerRegisterSchema = z
   .object({

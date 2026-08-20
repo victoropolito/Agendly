@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { getAuthErrorMessage } from '@/features/auth/staff-auth-context';
 import { customerFormSchema, type CustomerFormValues } from '@/features/customers/schemas';
 import { useCreateCustomer } from '@/features/customers/use-customers';
@@ -69,7 +70,7 @@ export function CustomerFormDialog({ trigger, onCreated }: CustomerFormDialogPro
                 <FormItem>
                   <FormLabel>Nome</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input maxLength={120} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -82,7 +83,7 @@ export function CustomerFormDialog({ trigger, onCreated }: CustomerFormDialogPro
                 <FormItem>
                   <FormLabel>Telefone</FormLabel>
                   <FormControl>
-                    <Input placeholder="(11) 99999-0000" {...field} />
+                    <PhoneInput placeholder="(11) 99999-0000" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -95,7 +96,7 @@ export function CustomerFormDialog({ trigger, onCreated }: CustomerFormDialogPro
                 <FormItem>
                   <FormLabel>E-mail (opcional)</FormLabel>
                   <FormControl>
-                    <Input type="email" {...field} />
+                    <Input type="email" maxLength={70} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

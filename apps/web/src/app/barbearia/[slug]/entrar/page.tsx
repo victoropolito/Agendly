@@ -51,7 +51,7 @@ export default function CustomerLoginPage() {
                 <FormItem>
                   <FormLabel>E-mail ou WhatsApp</FormLabel>
                   <FormControl>
-                    <Input placeholder="voce@exemplo.com ou (11) 99999-0000" {...field} />
+                    <Input placeholder="voce@exemplo.com ou (11) 99999-0000" maxLength={255} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
