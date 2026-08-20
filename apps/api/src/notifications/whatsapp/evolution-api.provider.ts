@@ -56,14 +56,23 @@ export class EvolutionApiProvider {
     return { apikey: this.config.getOrThrow<string>('EVOLUTION_API_KEY'), 'Content-Type': 'application/json' };
   }
 
-  /** Idempotently ensures the tenant's instance exists and returns a QR code to scan (or none, if already open). */
-  async ensureInstanceWithQrCode(instanceName: string): Promise<EvolutionQrResult> {
+  /**
+   * Idempotently ensures the tenant's instance exists and returns a way to link it — either a
+   * QR code to scan, or (when `phoneNumber` is given) a pairing code to type into WhatsApp
+   * instead. Pairing codes can only be requested at instance creation time, so if the instance
+   * already exists and a phone number is now given, the instance is recreated to get a fresh one.
+   */
+  async ensureInstanceWithQrCode(instanceName: string, phoneNumber?: string): Promise<EvolutionQrResult> {
     const state = await this.getConnectionState(instanceName);
     if (state === 'open') {
       return { ok: true };
     }
     if (state === 'not_found') {
-      return this.createInstance(instanceName);
+      return this.createInstance(instanceName, phoneNumber);
+    }
+    if (phoneNumber) {
+      await this.disconnect(instanceName);
+      return this.createInstance(instanceName, phoneNumber);
     }
     return this.refreshQrCode(instanceName);
   }
@@ -121,12 +130,17 @@ export class EvolutionApiProvider {
     }
   }
 
-  private async createInstance(instanceName: string): Promise<EvolutionQrResult> {
+  private async createInstance(instanceName: string, phoneNumber?: string): Promise<EvolutionQrResult> {
     try {
       const response = await fetch(`${this.baseUrl}/instance/create`, {
         method: 'POST',
         headers: this.headers,
-        body: JSON.stringify({ instanceName, qrcode: true, integration: 'WHATSAPP-BAILEYS' }),
+        body: JSON.stringify({
+          instanceName,
+          qrcode: true,
+          integration: 'WHATSAPP-BAILEYS',
+          ...(phoneNumber ? { number: phoneNumber } : {}),
+        }),
       });
       const payload = (await response.json().catch(() => null)) as (EvolutionCreateInstanceBody & EvolutionErrorBody) | null;
       if (!response.ok) {

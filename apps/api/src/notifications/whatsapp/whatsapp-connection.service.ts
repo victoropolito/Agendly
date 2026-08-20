@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConnectionStatus, WhatsAppProvider as WhatsAppProviderKind } from '@prisma/client';
 
+import { normalizePhone, toWhatsAppE164BR } from '../../common/phone.util';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { TenantContext } from '../../tenants/tenant-context';
 import { EvolutionApiProvider } from './evolution-api.provider';
@@ -44,10 +45,14 @@ export class WhatsAppConnectionService {
     return connection;
   }
 
-  /** Starts (or resumes) an Evolution API connection: creates the instance if needed and returns a QR code to scan. */
-  async startEvolutionConnection(context: TenantContext) {
+  /**
+   * Starts (or resumes) an Evolution API connection: creates the instance if needed and returns
+   * a QR code to scan — or, when `phone` is given, a pairing code to type into WhatsApp instead.
+   */
+  async startEvolutionConnection(context: TenantContext, phone?: string) {
     const instanceName = this.evolutionInstanceName(context.tenantId);
-    const result = await this.evolutionProvider.ensureInstanceWithQrCode(instanceName);
+    const phoneNumber = phone ? toWhatsAppE164BR(normalizePhone(phone)).replace(/^\+/, '') : undefined;
+    const result = await this.evolutionProvider.ensureInstanceWithQrCode(instanceName, phoneNumber);
     if (!result.ok) {
       throw new BadRequestException(result.error ?? 'Não foi possível iniciar a conexão com a Evolution API.');
     }

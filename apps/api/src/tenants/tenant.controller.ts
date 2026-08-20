@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Patch, Post, Put, Req, UseGuar
 import { TenantRole } from '@prisma/client';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { StartEvolutionConnectionDto } from '../notifications/whatsapp/dto/start-evolution-connection.dto';
 import { WhatsAppConnectionService } from '../notifications/whatsapp/whatsapp-connection.service';
 import { Roles } from './roles.decorator';
 import { RolesGuard } from './roles.guard';
@@ -45,8 +46,8 @@ export class TenantController {
   }
 
   @Post('whatsapp-connection/evolution')
-  startEvolutionWhatsApp(@Req() request: TenantRequest) {
-    return this.whatsAppConnectionService.startEvolutionConnection(request.tenantContext!);
+  startEvolutionWhatsApp(@Req() request: TenantRequest, @Body() dto: StartEvolutionConnectionDto) {
+    return this.whatsAppConnectionService.startEvolutionConnection(request.tenantContext!, dto.phone);
   }
 
   @HttpCode(204)

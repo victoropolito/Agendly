@@ -65,7 +65,8 @@ export function useWhatsAppConnection(options?: { enabled?: boolean }) {
 export function useStartEvolutionConnection() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => staffApi.post<EvolutionConnectionStart>('/tenant/me/whatsapp-connection/evolution'),
+    mutationFn: (phone?: string) =>
+      staffApi.post<EvolutionConnectionStart>('/tenant/me/whatsapp-connection/evolution', { phone }),
     onSuccess: (connection) => queryClient.setQueryData(['tenant', 'whatsapp-connection'], connection),
   });
 }
