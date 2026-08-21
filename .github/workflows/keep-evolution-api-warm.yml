@@ -17,5 +17,5 @@ jobs:
     steps:
       - name: Ping agendly-evolution-api
         run: |
-          status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 https://agendly-evolution-api.onrender.com/)
+          status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 90 https://agendly-evolution-api.onrender.com/)
           echo "Response status: $status"
