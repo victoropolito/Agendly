@@ -1,9 +1,9 @@
 'use client';
 
-import { MapPin, Phone } from 'lucide-react';
+import { MapPin, Phone, Store, UserRound } from 'lucide-react';
 import Link from 'next/link';
 
-import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,8 +24,18 @@ export default function BarbershopPublicPage() {
           {loadingTenant && <Skeleton className="h-8 w-48" />}
           {tenant && (
             <>
-              <h1 className="text-2xl font-semibold tracking-tight">{tenant.name}</h1>
-              {tenant.description && <p className="text-sm text-muted-foreground">{tenant.description}</p>}
+              <div className="flex items-center gap-3">
+                <Avatar className="size-16">
+                  <AvatarImage src={tenant.logoUrl ?? undefined} alt="" />
+                  <AvatarFallback>
+                    <Store className="size-7 text-muted-foreground" />
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight">{tenant.name}</h1>
+                  {tenant.description && <p className="text-sm text-muted-foreground">{tenant.description}</p>}
+                </div>
+              </div>
               <div className="flex flex-col gap-1 text-sm text-muted-foreground">
                 {tenant.address && (
                   <span className="flex items-center gap-1.5">
@@ -72,13 +82,19 @@ export default function BarbershopPublicPage() {
         <CardHeader>
           <CardTitle>Profissionais</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          {!professionals && <Skeleton className="h-8 w-32" />}
+        <CardContent className="flex flex-wrap gap-3">
+          {!professionals && <Skeleton className="h-16 w-40" />}
           {professionals?.length === 0 && <p className="text-sm text-muted-foreground">Nenhum profissional disponível.</p>}
           {professionals?.map((professional) => (
-            <Badge key={professional.id} variant="secondary" className="px-3 py-1.5 text-sm">
-              {professional.name}
-            </Badge>
+            <div key={professional.id} className="flex items-center gap-2 rounded-lg border border-border p-2 pr-3">
+              <Avatar className="size-9">
+                <AvatarImage src={professional.photoUrl ?? undefined} alt="" />
+                <AvatarFallback>
+                  <UserRound className="size-4 text-muted-foreground" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-medium">{professional.name}</span>
+            </div>
           ))}
         </CardContent>
       </Card>

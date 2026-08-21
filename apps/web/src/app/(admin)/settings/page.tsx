@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Store } from 'lucide-react';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -17,6 +18,7 @@ import { PublicLinkCard } from '@/features/tenant/public-link-card';
 import { tenantSettingsSchema, type TenantSettingsValues } from '@/features/tenant/schemas';
 import { useTenant, useUpdateTenant } from '@/features/tenant/use-tenant';
 import { WhatsAppConnectionCard } from '@/features/tenant/whatsapp-connection-card';
+import { ImageUploadField } from '@/features/uploads/image-upload-field';
 
 export default function SettingsPage() {
   const { data: tenant, isLoading } = useTenant();
@@ -49,6 +51,14 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleLogoChange(logoUrl: string) {
+    try {
+      await updateTenant.mutateAsync({ logoUrl });
+    } catch (error) {
+      toast.error(getAuthErrorMessage(error));
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -68,6 +78,12 @@ export default function SettingsPage() {
           {tenant && (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+                <ImageUploadField
+                  label="Logo"
+                  value={tenant.logoUrl}
+                  onChange={(url) => void handleLogoChange(url)}
+                  fallback={<Store className="size-6 text-muted-foreground" />}
+                />
                 <FormField
                   control={form.control}
                   name="name"

@@ -18,6 +18,11 @@ export class UpdateProfessionalDto {
   isActive?: boolean;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  photoUrl?: string;
+
+  @IsOptional()
   @IsArray()
   @ArrayMaxSize(100)
   @ArrayUnique()

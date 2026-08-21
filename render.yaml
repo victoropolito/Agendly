@@ -55,6 +55,15 @@ services:
       # The agendly-evolution-api service's public URL, e.g. https://agendly-evolution-api.onrender.com
       - key: EVOLUTION_API_URL
         sync: false
+      # Barbershop logo / professional photo uploads go straight from the browser to Cloudinary
+      # (never through this server). Free account at cloudinary.com — values come from
+      # Dashboard > Product Environment Credentials.
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
 
   - name: agendly-evolution-api
     type: web

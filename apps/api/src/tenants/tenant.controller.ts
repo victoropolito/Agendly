@@ -4,6 +4,7 @@ import { TenantRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { StartEvolutionConnectionDto } from '../notifications/whatsapp/dto/start-evolution-connection.dto';
 import { WhatsAppConnectionService } from '../notifications/whatsapp/whatsapp-connection.service';
+import { CloudinaryService } from '../uploads/cloudinary.service';
 import { Roles } from './roles.decorator';
 import { RolesGuard } from './roles.guard';
 import { TenantAccessGuard, type TenantRequest } from './tenant-access.guard';
@@ -18,6 +19,7 @@ export class TenantController {
   constructor(
     private readonly tenantService: TenantService,
     private readonly whatsAppConnectionService: WhatsAppConnectionService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   @Get()
@@ -54,5 +56,11 @@ export class TenantController {
   @Delete('whatsapp-connection')
   async disconnectWhatsApp(@Req() request: TenantRequest): Promise<void> {
     await this.whatsAppConnectionService.disconnect(request.tenantContext!);
+  }
+
+  /** Authorizes a direct-to-Cloudinary upload (logo or a professional's photo) from the browser. */
+  @Post('upload-signature')
+  getUploadSignature(@Req() request: TenantRequest) {
+    return this.cloudinaryService.createUploadSignature(request.tenantContext!.tenantId);
   }
 }

@@ -54,6 +54,7 @@ export interface Professional {
   userId: string | null;
   name: string;
   phone: string | null;
+  photoUrl: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -176,7 +177,16 @@ export interface PublicService {
 export interface PublicProfessional {
   id: string;
   name: string;
+  photoUrl: string | null;
   services: { serviceId: string }[];
+}
+
+export interface UploadSignature {
+  signature: string;
+  timestamp: number;
+  folder: string;
+  apiKey: string;
+  cloudName: string;
 }
 
 export type WhatsAppConnectionStatus = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'ERROR';

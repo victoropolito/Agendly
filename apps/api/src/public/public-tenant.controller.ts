@@ -44,7 +44,7 @@ export class PublicTenantController {
     return this.prisma.professional.findMany({
       where: { tenantId: tenant.id, isActive: true },
       orderBy: { name: 'asc' },
-      select: { id: true, name: true, services: { select: { serviceId: true } } },
+      select: { id: true, name: true, photoUrl: true, services: { select: { serviceId: true } } },
     });
   }
 

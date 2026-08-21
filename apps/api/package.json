@@ -25,6 +25,7 @@
     "bullmq": "^6.0.10",
     "class-transformer": "latest",
     "class-validator": "latest",
+    "cloudinary": "^2.10.1",
     "ioredis": "^6.0.0",
     "luxon": "^3.7.2",
     "reflect-metadata": "latest",

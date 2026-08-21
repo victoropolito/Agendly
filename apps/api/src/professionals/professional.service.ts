@@ -38,6 +38,7 @@ export class ProfessionalService {
         tenantId: context.tenantId,
         name: dto.name,
         phone: dto.phone,
+        photoUrl: dto.photoUrl,
         isActive: dto.isActive ?? true,
         services: dto.serviceIds
           ? { create: dto.serviceIds.map((serviceId) => ({ tenantId: context.tenantId, serviceId })) }
@@ -67,6 +68,7 @@ export class ProfessionalService {
         data: {
           name: dto.name,
           phone: dto.phone,
+          photoUrl: dto.photoUrl,
           isActive: dto.isActive,
         },
         include: { services: { select: { serviceId: true } } },

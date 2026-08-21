@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { UserRound } from 'lucide-react';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -24,6 +25,7 @@ import { getAuthErrorMessage } from '@/features/auth/staff-auth-context';
 import { professionalFormSchema, type ProfessionalFormValues } from '@/features/professionals/schemas';
 import { useCreateProfessional, useUpdateProfessional } from '@/features/professionals/use-professionals';
 import { useServices } from '@/features/services/use-services';
+import { ImageUploadField } from '@/features/uploads/image-upload-field';
 import type { Professional } from '@/lib/types';
 
 interface ProfessionalFormDialogProps {
@@ -33,6 +35,7 @@ interface ProfessionalFormDialogProps {
 
 export function ProfessionalFormDialog({ professional, trigger }: ProfessionalFormDialogProps) {
   const [open, setOpen] = React.useState(false);
+  const [photoUrl, setPhotoUrl] = React.useState<string | null>(professional?.photoUrl ?? null);
   const { data: services } = useServices();
   const createProfessional = useCreateProfessional();
   const updateProfessional = useUpdateProfessional();
@@ -49,11 +52,14 @@ export function ProfessionalFormDialog({ professional, trigger }: ProfessionalFo
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
-    if (next) form.reset(defaults);
+    if (next) {
+      form.reset(defaults);
+      setPhotoUrl(professional?.photoUrl ?? null);
+    }
   }
 
   async function onSubmit(values: ProfessionalFormValues) {
-    const payload = { ...values, phone: values.phone || undefined };
+    const payload = { ...values, phone: values.phone || undefined, photoUrl: photoUrl ?? undefined };
     try {
       if (isEditing) {
         await updateProfessional.mutateAsync({ id: professional.id, data: payload });
@@ -80,6 +86,12 @@ export function ProfessionalFormDialog({ professional, trigger }: ProfessionalFo
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+            <ImageUploadField
+              label="Foto"
+              value={photoUrl}
+              onChange={setPhotoUrl}
+              fallback={<UserRound className="size-6 text-muted-foreground" />}
+            />
             <FormField
               control={form.control}
               name="name"

@@ -6,6 +6,7 @@ import type { Professional, ProfessionalHour } from '@/lib/types';
 export interface ProfessionalInput {
   name: string;
   phone?: string;
+  photoUrl?: string;
   isActive?: boolean;
   serviceIds?: string[];
 }
