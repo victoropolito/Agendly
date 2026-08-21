@@ -7,12 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCustomerAuth } from '@/features/customer-auth/customer-auth-context';
+import { useBarbershopSlug } from '@/features/public/use-barbershop-slug';
 import { usePublicProfessionals, usePublicServices, usePublicTenant } from '@/features/public/use-public-barbershop';
 import { formatCents, formatDurationMinutes, formatPhoneDisplay } from '@/lib/format';
 
 export default function BarbershopPublicPage() {
-  const { slug } = useCustomerAuth();
+  const slug = useBarbershopSlug();
   const { data: tenant, isLoading: loadingTenant } = usePublicTenant();
   const { data: services } = usePublicServices();
   const { data: professionals } = usePublicProfessionals();

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useCustomerAuth } from '@/features/customer-auth/customer-auth-context';
+import { useBarbershopSlug } from '@/features/public/use-barbershop-slug';
 import type { Appointment } from '@/lib/types';
 
 export interface BookAppointmentInput {
@@ -18,7 +19,8 @@ export interface CustomerRescheduleInput {
 }
 
 export function useMyAppointments() {
-  const { api, slug, isAuthenticated } = useCustomerAuth();
+  const { api, isAuthenticated } = useCustomerAuth();
+  const slug = useBarbershopSlug();
   return useQuery({
     queryKey: ['public', slug, 'me', 'appointments'],
     queryFn: () => api.get<Appointment[]>(`/public/barbershops/${slug}/me/appointments`),
@@ -27,7 +29,8 @@ export function useMyAppointments() {
 }
 
 export function useBookAppointment() {
-  const { api, slug } = useCustomerAuth();
+  const { api } = useCustomerAuth();
+  const slug = useBarbershopSlug();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: BookAppointmentInput) => api.post<Appointment>(`/public/barbershops/${slug}/me/appointments`, data),
@@ -39,7 +42,8 @@ export function useBookAppointment() {
 }
 
 export function useCancelMyAppointment() {
-  const { api, slug } = useCustomerAuth();
+  const { api } = useCustomerAuth();
+  const slug = useBarbershopSlug();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.post<Appointment>(`/public/barbershops/${slug}/me/appointments/${id}/cancel`),
@@ -51,7 +55,8 @@ export function useCancelMyAppointment() {
 }
 
 export function useRescheduleMyAppointment() {
-  const { api, slug } = useCustomerAuth();
+  const { api } = useCustomerAuth();
+  const slug = useBarbershopSlug();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: CustomerRescheduleInput }) =>

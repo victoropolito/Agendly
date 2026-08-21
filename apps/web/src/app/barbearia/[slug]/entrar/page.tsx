@@ -13,9 +13,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { getCustomerAuthErrorMessage, useCustomerAuth } from '@/features/customer-auth/customer-auth-context';
 import { customerLoginSchema, type CustomerLoginValues } from '@/features/customer-auth/schemas';
+import { useBarbershopSlug } from '@/features/public/use-barbershop-slug';
 
 export default function CustomerLoginPage() {
-  const { slug, login } = useCustomerAuth();
+  const { login } = useCustomerAuth();
+  const slug = useBarbershopSlug();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<CustomerLoginValues>({

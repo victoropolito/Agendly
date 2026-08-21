@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getCustomerAuthErrorMessage, useCustomerAuth } from '@/features/customer-auth/customer-auth-context';
+import { useBarbershopSlug } from '@/features/public/use-barbershop-slug';
 import {
   customerLoginSchema,
   customerRegisterSchema,
@@ -44,7 +45,8 @@ function StepHeader({ title, onBack }: { title: string; onBack?: () => void }) {
 
 export function BookingFlow() {
   const router = useRouter();
-  const { slug, isAuthenticated, login, register } = useCustomerAuth();
+  const { isAuthenticated, login, register } = useCustomerAuth();
+  const slug = useBarbershopSlug();
   const { data: services, isLoading: loadingServices } = usePublicServices();
   const { data: professionals } = usePublicProfessionals();
   const bookAppointment = useBookAppointment();

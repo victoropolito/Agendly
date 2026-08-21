@@ -7,6 +7,7 @@ import { CustomerAuthController } from './customer-auth.controller';
 import { CustomerAuthGuard } from './customer-auth.guard';
 import { CustomerAuthService } from './customer-auth.service';
 import { CustomerController } from './customer.controller';
+import { CustomerSessionGuard } from './customer-session.guard';
 import { PublicAppointmentService } from './public-appointment.service';
 import { PublicTenantController } from './public-tenant.controller';
 import { TenantLookupService } from './tenant-lookup.service';
@@ -14,6 +15,6 @@ import { TenantLookupService } from './tenant-lookup.service';
 @Module({
   imports: [JwtModule.register({}), AvailabilityModule, AppointmentModule],
   controllers: [CustomerAuthController, PublicTenantController, CustomerController],
-  providers: [TenantLookupService, CustomerAuthService, CustomerAuthGuard, PublicAppointmentService],
+  providers: [TenantLookupService, CustomerAuthService, CustomerAuthGuard, CustomerSessionGuard, PublicAppointmentService],
 })
 export class PublicModule {}

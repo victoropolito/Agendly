@@ -1,26 +1,27 @@
-import { Body, Controller, HttpCode, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 
 import { RefreshTokenDto } from '../auth/dto/refresh-token.dto';
 import { CustomerAuthService } from './customer-auth.service';
+import { type CustomerSessionRequest, CustomerSessionGuard } from './customer-session.guard';
 import { LoginCustomerDto } from './dto/login-customer.dto';
 import { RegisterCustomerDto } from './dto/register-customer.dto';
 
-@Controller('public/barbershops/:slug/auth')
+@Controller('public/auth')
 export class CustomerAuthController {
   constructor(private readonly customerAuthService: CustomerAuthService) {}
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('register')
-  register(@Param('slug') slug: string, @Body() dto: RegisterCustomerDto) {
-    return this.customerAuthService.register(slug, dto);
+  register(@Body() dto: RegisterCustomerDto) {
+    return this.customerAuthService.register(dto);
   }
 
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(200)
   @Post('login')
-  login(@Param('slug') slug: string, @Body() dto: LoginCustomerDto) {
-    return this.customerAuthService.login(slug, dto);
+  login(@Body() dto: LoginCustomerDto) {
+    return this.customerAuthService.login(dto);
   }
 
   @HttpCode(200)
@@ -33,5 +34,17 @@ export class CustomerAuthController {
   @Post('logout')
   async logout(@Body() dto: RefreshTokenDto): Promise<void> {
     await this.customerAuthService.logout(dto.refreshToken);
+  }
+
+  @UseGuards(CustomerSessionGuard)
+  @Get('me')
+  me(@Req() request: CustomerSessionRequest) {
+    return this.customerAuthService.getProfile(request.customerUserId!);
+  }
+
+  @UseGuards(CustomerSessionGuard)
+  @Get('me/barbershops')
+  myBarbershops(@Req() request: CustomerSessionRequest) {
+    return this.customerAuthService.listMyBarbershops(request.customerUserId!);
   }
 }

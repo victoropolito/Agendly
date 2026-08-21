@@ -1,7 +1,6 @@
 export interface CustomerAccessTokenPayload {
   sub: string;
   sid: string;
-  tenantId: string;
 }
 
 export interface CustomerAuthTokens {

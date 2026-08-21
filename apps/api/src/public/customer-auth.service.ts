@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { UserStatus, type User } from '@prisma/client';
+import { TenantStatus, UserStatus, type User } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { randomUUID } from 'node:crypto';
 
@@ -10,7 +10,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { CustomerAccessTokenPayload, CustomerAuthTokens } from './customer-auth.types';
 import { LoginCustomerDto } from './dto/login-customer.dto';
 import { RegisterCustomerDto } from './dto/register-customer.dto';
-import { TenantLookupService } from './tenant-lookup.service';
 
 const ACCESS_TOKEN_TTL = '30m';
 const REFRESH_TOKEN_TTL = '90d';
@@ -22,73 +21,56 @@ export class CustomerAuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly tenantLookup: TenantLookupService,
   ) {}
 
-  async register(slug: string, dto: RegisterCustomerDto): Promise<CustomerAuthTokens> {
+  /** Creates the customer's one global identity — not tied to any single barbershop. */
+  async register(dto: RegisterCustomerDto): Promise<CustomerAuthTokens> {
     if (!dto.phone && !dto.email) {
       throw new BadRequestException('Informe e-mail ou WhatsApp para criar a conta.');
     }
 
-    const tenant = await this.tenantLookup.resolveActiveBySlug(slug);
     const phoneNormalized = dto.phone ? normalizePhone(dto.phone) : undefined;
 
-    let user = phoneNormalized ? await this.prisma.user.findUnique({ where: { phoneNormalized } }) : null;
-    if (!user && dto.email) {
-      user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const existing = phoneNormalized
+      ? await this.prisma.user.findUnique({ where: { phoneNormalized } })
+      : dto.email
+        ? await this.prisma.user.findUnique({ where: { email: dto.email } })
+        : null;
+    if (existing) {
+      throw new ConflictException('Já existe uma conta com esse e-mail ou WhatsApp. Faça login.');
     }
 
-    if (user) {
-      if (!(await argon2.verify(user.passwordHash, dto.password))) {
-        throw new ConflictException('Já existe uma conta com esse e-mail ou WhatsApp. Faça login.');
-      }
-    } else {
-      const passwordHash = await argon2.hash(dto.password, { type: argon2.argon2id });
-      user = await this.prisma.user.create({
-        data: { name: dto.name, phoneNormalized, email: dto.email, passwordHash },
-      });
-    }
-
-    const existingCustomer = await this.prisma.customer.findFirst({
-      where: {
-        tenantId: tenant.id,
-        OR: [...(phoneNormalized ? [{ phoneNormalized }] : []), ...(dto.email ? [{ email: dto.email }] : [])],
-      },
+    const passwordHash = await argon2.hash(dto.password, { type: argon2.argon2id });
+    const user = await this.prisma.user.create({
+      data: { name: dto.name, phoneNormalized, email: dto.email, passwordHash },
     });
 
-    if (existingCustomer) {
-      await this.prisma.customer.update({
-        where: { id: existingCustomer.id },
-        data: {
-          userId: user.id,
-          name: dto.name,
-          phoneNormalized: phoneNormalized ?? existingCustomer.phoneNormalized,
-          email: dto.email ?? existingCustomer.email,
-        },
-      });
-    } else {
-      await this.prisma.customer.create({
-        data: { tenantId: tenant.id, userId: user.id, name: dto.name, phoneNormalized, email: dto.email },
-      });
-    }
-
-    return this.issueSession(user.id, tenant.id);
+    return this.issueSession(user.id);
   }
 
-  async login(slug: string, dto: LoginCustomerDto): Promise<CustomerAuthTokens> {
-    const tenant = await this.tenantLookup.resolveActiveBySlug(slug);
+  async login(dto: LoginCustomerDto): Promise<CustomerAuthTokens> {
     const user = await this.findUserByIdentifier(dto.identifier.trim());
 
     if (!user || user.status !== UserStatus.ACTIVE || !(await argon2.verify(user.passwordHash, dto.password))) {
       throw new UnauthorizedException('Credenciais inválidas.');
     }
 
-    const customer = await this.prisma.customer.findFirst({ where: { tenantId: tenant.id, userId: user.id } });
-    if (!customer) {
-      throw new UnauthorizedException('Você ainda não possui cadastro nesta barbearia.');
-    }
+    return this.issueSession(user.id);
+  }
 
-    return this.issueSession(user.id, tenant.id);
+  async getProfile(userId: string): Promise<{ id: string; name: string; phone: string | null; email: string | null }> {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    return { id: user.id, name: user.name, phone: user.phoneNormalized, email: user.email };
+  }
+
+  /** Barbershops this customer has an account at — the "suas barbearias" list. */
+  async listMyBarbershops(userId: string) {
+    const customers = await this.prisma.customer.findMany({
+      where: { userId, tenant: { status: TenantStatus.ACTIVE } },
+      select: { updatedAt: true, tenant: { select: { id: true, slug: true, name: true, logoUrl: true } } },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return customers.map((c) => c.tenant);
   }
 
   async refresh(refreshToken: string): Promise<CustomerAuthTokens> {
@@ -98,7 +80,6 @@ export class CustomerAuthService {
     if (
       !session ||
       session.userId !== payload.sub ||
-      session.tenantId !== payload.tenantId ||
       session.revokedAt ||
       session.expiresAt <= new Date() ||
       !(await argon2.verify(session.refreshTokenHash, refreshToken))
@@ -114,7 +95,10 @@ export class CustomerAuthService {
       throw new UnauthorizedException('Sessão já foi renovada.');
     }
 
-    return this.issueSession(payload.sub, payload.tenantId);
+    // A refresh token issued before this session became global may still carry a `tenantId`
+    // claim (harmless — JWT verification ignores unused fields) — this mints a fresh, tenant-less
+    // session either way, so every customer is fully migrated within one access-token lifetime.
+    return this.issueSession(payload.sub);
   }
 
   async logout(refreshToken: string): Promise<void> {
@@ -137,9 +121,9 @@ export class CustomerAuthService {
     }
   }
 
-  private async issueSession(userId: string, tenantId: string): Promise<CustomerAuthTokens> {
+  private async issueSession(userId: string): Promise<CustomerAuthTokens> {
     const sessionId = randomUUID();
-    const payload: CustomerAccessTokenPayload = { sub: userId, sid: sessionId, tenantId };
+    const payload: CustomerAccessTokenPayload = { sub: userId, sid: sessionId };
 
     const refreshToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.getOrThrow<string>('JWT_CUSTOMER_REFRESH_SECRET'),
@@ -151,7 +135,6 @@ export class CustomerAuthService {
       data: {
         id: sessionId,
         userId,
-        tenantId,
         refreshTokenHash,
         expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
       },

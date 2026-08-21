@@ -1,13 +1,11 @@
 import { API_BASE_URL } from './api-config';
 import { createHttpClient, type TokenPair } from './http-client';
 
-function storageKey(slug: string): string {
-  return `agendly.customer.tokens.${slug}`;
-}
+const STORAGE_KEY = 'agendly.customer.tokens';
 
-export function getCustomerTokens(slug: string): TokenPair | null {
+export function getCustomerTokens(): TokenPair | null {
   if (typeof window === 'undefined') return null;
-  const raw = window.localStorage.getItem(storageKey(slug));
+  const raw = window.localStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as TokenPair;
@@ -16,22 +14,20 @@ export function getCustomerTokens(slug: string): TokenPair | null {
   }
 }
 
-export function setCustomerTokens(slug: string, tokens: TokenPair): void {
+export function setCustomerTokens(tokens: TokenPair): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(storageKey(slug), JSON.stringify(tokens));
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
 }
 
-export function clearCustomerTokens(slug: string): void {
+export function clearCustomerTokens(): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.removeItem(storageKey(slug));
+  window.localStorage.removeItem(STORAGE_KEY);
 }
 
-export function createCustomerApi(slug: string) {
-  return createHttpClient({
-    baseUrl: API_BASE_URL,
-    getTokens: () => getCustomerTokens(slug),
-    setTokens: (tokens) => setCustomerTokens(slug, tokens),
-    clearTokens: () => clearCustomerTokens(slug),
-    refreshPath: `/public/barbershops/${slug}/auth/refresh`,
-  });
-}
+export const customerApi = createHttpClient({
+  baseUrl: API_BASE_URL,
+  getTokens: getCustomerTokens,
+  setTokens: setCustomerTokens,
+  clearTokens: clearCustomerTokens,
+  refreshPath: '/public/auth/refresh',
+});

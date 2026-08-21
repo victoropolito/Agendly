@@ -11,11 +11,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCustomerAuthErrorMessage, useCustomerAuth } from '@/features/customer-auth/customer-auth-context';
 import { CustomerRescheduleDialog } from '@/features/public/customer-reschedule-dialog';
+import { useBarbershopSlug } from '@/features/public/use-barbershop-slug';
 import { useCancelMyAppointment, useMyAppointments } from '@/features/public/use-my-appointments';
 import { formatAppointmentStatus, formatCents, formatDateShort, formatTime } from '@/lib/format';
 
 export default function CustomerAccountPage() {
-  const { slug, customer, isLoading, isAuthenticated, logout } = useCustomerAuth();
+  const { customer, isLoading, isAuthenticated, logout } = useCustomerAuth();
+  const slug = useBarbershopSlug();
   const router = useRouter();
   const { data: appointments, isLoading: loadingAppointments } = useMyAppointments();
   const cancelAppointment = useCancelMyAppointment();

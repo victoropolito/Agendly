@@ -1,6 +1,7 @@
-import { CanActivate, ExecutionContext, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import type { Customer } from '@prisma/client';
 import type { Request } from 'express';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -37,16 +38,8 @@ export class CustomerAuthGuard implements CanActivate {
 
     const slug = Array.isArray(request.params.slug) ? request.params.slug[0] : request.params.slug;
     const tenant = await this.tenantLookup.resolveActiveBySlug(slug);
-    if (tenant.id !== payload.tenantId) {
-      throw new NotFoundException('Barbearia não encontrada.');
-    }
 
-    const customer = await this.prisma.customer.findFirst({
-      where: { tenantId: tenant.id, userId: payload.sub },
-    });
-    if (!customer) {
-      throw new UnauthorizedException('Cliente não encontrado nesta barbearia.');
-    }
+    const customer = await this.findOrCreateCustomer(tenant.id, payload.sub);
 
     request.customerContext = {
       tenantId: tenant.id,
@@ -55,5 +48,38 @@ export class CustomerAuthGuard implements CanActivate {
       customerName: customer.name,
     };
     return true;
+  }
+
+  /**
+   * The customer session is global — the first time an authenticated customer touches a given
+   * barbershop, we silently provision their `Customer` profile there instead of requiring a
+   * separate sign-up per shop. Only ever creates a fresh row keyed by (tenantId, userId); never
+   * matches an existing walk-in `Customer` (userId: null) by phone/email, since that number could
+   * have belonged to someone else and auto-linking would leak that stranger's booking history.
+   */
+  private async findOrCreateCustomer(tenantId: string, userId: string): Promise<Customer> {
+    const existing = await this.prisma.customer.findUnique({
+      where: { tenantId_userId: { tenantId, userId } },
+    });
+    if (existing) return existing;
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('Sessão inválida.');
+    }
+
+    try {
+      return await this.prisma.customer.create({
+        data: { tenantId, userId, name: user.name, phoneNormalized: user.phoneNormalized, email: user.email },
+      });
+    } catch (error) {
+      if (!this.isUniqueViolation(error)) throw error;
+      // Concurrent first request for the same (tenantId, userId) — the other one won the race.
+      return this.prisma.customer.findUniqueOrThrow({ where: { tenantId_userId: { tenantId, userId } } });
+    }
+  }
+
+  private isUniqueViolation(error: unknown): boolean {
+    return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002';
   }
 }

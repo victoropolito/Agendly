@@ -14,9 +14,11 @@ import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { getCustomerAuthErrorMessage, useCustomerAuth } from '@/features/customer-auth/customer-auth-context';
 import { customerRegisterSchema, type CustomerRegisterValues } from '@/features/customer-auth/schemas';
+import { useBarbershopSlug } from '@/features/public/use-barbershop-slug';
 
 export default function CustomerRegisterPage() {
-  const { slug, register } = useCustomerAuth();
+  const { register } = useCustomerAuth();
+  const slug = useBarbershopSlug();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<CustomerRegisterValues>({

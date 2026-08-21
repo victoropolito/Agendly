@@ -3,7 +3,7 @@
 import * as React from 'react';
 
 import { ApiError } from '@/lib/api-error';
-import { clearCustomerTokens, createCustomerApi, getCustomerTokens, setCustomerTokens } from '@/lib/customer-api';
+import { clearCustomerTokens, customerApi, getCustomerTokens, setCustomerTokens } from '@/lib/customer-api';
 import type { AuthTokens, CustomerProfile } from '@/lib/types';
 import type { HttpClient } from '@/lib/http-client';
 
@@ -20,7 +20,6 @@ interface LoginInput {
 }
 
 interface CustomerAuthContextValue {
-  slug: string;
   api: HttpClient;
   customer: CustomerProfile | null;
   isLoading: boolean;
@@ -32,30 +31,33 @@ interface CustomerAuthContextValue {
 
 const CustomerAuthContext = React.createContext<CustomerAuthContextValue | null>(null);
 
-export function CustomerAuthProvider({ slug, children }: { slug: string; children: React.ReactNode }) {
-  const api = React.useMemo(() => createCustomerApi(slug), [slug]);
+/**
+ * A customer's session is global — one login works across every barbershop on the platform, not
+ * just the one they registered at. So this is mounted once at the app root, not per `[slug]`.
+ */
+export function CustomerAuthProvider({ children }: { children: React.ReactNode }) {
   const [customer, setCustomer] = React.useState<CustomerProfile | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
   const loadCustomer = React.useCallback(async (): Promise<CustomerProfile | null> => {
-    const tokens = getCustomerTokens(slug);
+    const tokens = getCustomerTokens();
     if (!tokens) {
       setCustomer(null);
       setIsLoading(false);
       return null;
     }
     try {
-      const profile = await api.get<CustomerProfile>(`/public/barbershops/${slug}/me`);
+      const profile = await customerApi.get<CustomerProfile>('/public/auth/me');
       setCustomer(profile);
       return profile;
     } catch {
-      clearCustomerTokens(slug);
+      clearCustomerTokens();
       setCustomer(null);
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [api, slug]);
+  }, []);
 
   React.useEffect(() => {
     // Restores the session from stored tokens on mount — a genuine fetch-on-mount sync
@@ -66,42 +68,42 @@ export function CustomerAuthProvider({ slug, children }: { slug: string; childre
 
   const login = React.useCallback(
     async (input: LoginInput) => {
-      const tokens = await api.post<AuthTokens>(`/public/barbershops/${slug}/auth/login`, input, { skipAuth: true });
-      setCustomerTokens(slug, tokens);
+      const tokens = await customerApi.post<AuthTokens>('/public/auth/login', input, { skipAuth: true });
+      setCustomerTokens(tokens);
       const profile = await loadCustomer();
       if (!profile) throw new Error('Não foi possível carregar seus dados.');
       return profile;
     },
-    [api, slug, loadCustomer],
+    [loadCustomer],
   );
 
   const register = React.useCallback(
     async (input: RegisterInput) => {
-      const tokens = await api.post<AuthTokens>(`/public/barbershops/${slug}/auth/register`, input, { skipAuth: true });
-      setCustomerTokens(slug, tokens);
+      const tokens = await customerApi.post<AuthTokens>('/public/auth/register', input, { skipAuth: true });
+      setCustomerTokens(tokens);
       const profile = await loadCustomer();
       if (!profile) throw new Error('Não foi possível carregar seus dados.');
       return profile;
     },
-    [api, slug, loadCustomer],
+    [loadCustomer],
   );
 
   const logout = React.useCallback(async () => {
-    const tokens = getCustomerTokens(slug);
-    clearCustomerTokens(slug);
+    const tokens = getCustomerTokens();
+    clearCustomerTokens();
     setCustomer(null);
     if (tokens?.refreshToken) {
       try {
-        await api.post(`/public/barbershops/${slug}/auth/logout`, { refreshToken: tokens.refreshToken }, { skipAuth: true });
+        await customerApi.post('/public/auth/logout', { refreshToken: tokens.refreshToken }, { skipAuth: true });
       } catch {
         // best-effort
       }
     }
-  }, [api, slug]);
+  }, []);
 
   const value = React.useMemo<CustomerAuthContextValue>(
-    () => ({ slug, api, customer, isLoading, isAuthenticated: !!customer, login, register, logout }),
-    [slug, api, customer, isLoading, login, register, logout],
+    () => ({ api: customerApi, customer, isLoading, isAuthenticated: !!customer, login, register, logout }),
+    [customer, isLoading, login, register, logout],
   );
 
   return <CustomerAuthContext.Provider value={value}>{children}</CustomerAuthContext.Provider>;
