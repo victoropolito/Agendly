@@ -35,6 +35,9 @@ export default function LandingPage() {
           <span className="text-lg font-semibold tracking-tight">Agendly</span>
           <nav className="flex items-center gap-2">
             <Button asChild variant="ghost">
+              <Link href="/barbearias">Sou cliente</Link>
+            </Button>
+            <Button asChild variant="ghost">
               <Link href="/login">Entrar</Link>
             </Button>
             <Button asChild>

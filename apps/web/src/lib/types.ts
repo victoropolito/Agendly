@@ -155,6 +155,16 @@ export interface PublicTenant {
   logoUrl: string | null;
 }
 
+/** One card in the public barbershop directory, or in a customer's "suas barbearias" list. */
+export interface BarbershopListing {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  address: string | null;
+  logoUrl: string | null;
+}
+
 export interface PublicService {
   id: string;
   name: string;
